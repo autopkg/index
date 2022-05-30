@@ -1,0 +1,37 @@
+name: build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0/4 * * *"
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    if: github.repository_owner == 'autopkg'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone this repository
+        uses: actions/checkout@v2
+        with:
+          path: main
+
+      - name: Clone AutoPkg org repos and rebuild search index
+        working-directory: main
+        env:
+          PA_TOKEN: ${{ secrets.PAT_SECRET }}
+        run: python3 build_index.py
+
+      - name: Commit index
+        working-directory: main
+        env:
+          PA_TOKEN: ${{ secrets.PAT_SECRET }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add index.json || true
+          git commit -m "Rebuild index" index.json || true
+          git push --set-upstream origin main || true
