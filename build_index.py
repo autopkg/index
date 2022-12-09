@@ -114,8 +114,8 @@ def build_search_index(repos):
                 try:
                     with open(recipe, "rb") as openfile:
                         recipe_dict = plistlib.load(openfile)
-                except ExpatError:
-                    print(f"WARNING: Unable to parse {recipe} as yaml")
+                except (plistlib.InvalidFileException, ExpatError):
+                    print(f"WARNING: Unable to parse {recipe} as plist")
 
             # Generally applicable metadata
             input_dict = recipe_dict.get("Input", {})
