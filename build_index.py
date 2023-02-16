@@ -114,7 +114,7 @@ def build_search_index(repos):
                 try:
                     with open(recipe, "rb") as openfile:
                         recipe_dict = plistlib.load(openfile)
-                except (plistlib.InvalidFileException, ExpatError):
+                except (plistlib.InvalidFileException, ExpatError, ValueError):
                     print(f"WARNING: Unable to parse {recipe} as plist")
 
             # Generally applicable metadata
