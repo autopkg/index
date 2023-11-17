@@ -1,7 +1,7 @@
 #!/bin/env python3
 # encoding: utf-8
 
-# Copyright 2022 Elliot Jordan
+# Copyright 2022-2023 Elliot Jordan
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,6 +100,9 @@ def build_search_index(repos):
         recipes += glob(f"repos/{repo['full_name']}/*/*/*.recipe.plist")
         recipes += glob(f"repos/{repo['full_name']}/*/*.recipe.yaml")
         recipes += glob(f"repos/{repo['full_name']}/*/*/*.recipe.yaml")
+
+        # Filter out any directories
+        recipes = [r for r in recipes if os.path.isfile(r)]
 
         # Get indexable data from recipe files
         for recipe in recipes:
