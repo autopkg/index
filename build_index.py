@@ -135,7 +135,7 @@ def build_search_index(repos):
                 continue
 
             # Generally applicable metadata
-            input_dict = recipe_dict.get("Input", {})
+            input_dict = recipe_dict.get("Input") or {}
             index_entry["name"] = input_dict.get("NAME")
             index_entry["description"] = recipe_dict.get("Description")
             index_entry["repo"] = repo["full_name"]
