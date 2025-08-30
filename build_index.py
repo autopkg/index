@@ -117,12 +117,22 @@ def build_search_index(repos):
                     print(f"::warning file={recipe}::{error_msg}")
                     parsing_errors.append(error_msg)
                     continue
+                if recipe_dict is None:
+                    error_msg = f"Empty or invalid YAML file: {recipe}"
+                    print(f"::warning file={recipe}::{error_msg}")
+                    parsing_errors.append(error_msg)
+                    continue
             else:
                 try:
                     with open(recipe, "rb") as openfile:
                         recipe_dict = plistlib.load(openfile)
                 except (plistlib.InvalidFileException, ExpatError, ValueError) as e:
                     error_msg = f"Unable to parse {recipe} as plist: {e}"
+                    print(f"::warning file={recipe}::{error_msg}")
+                    parsing_errors.append(error_msg)
+                    continue
+                if recipe_dict is None:
+                    error_msg = f"Empty or invalid plist file: {recipe}"
                     print(f"::warning file={recipe}::{error_msg}")
                     parsing_errors.append(error_msg)
                     continue
