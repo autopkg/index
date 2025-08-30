@@ -1,7 +1,7 @@
 #!/bin/env python3
 # encoding: utf-8
 
-# Copyright 2022-2023 Elliot Jordan
+# Copyright 2022-2025 Elliot Jordan
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -92,6 +92,7 @@ def build_search_index(repos):
         "shortnames": {},
     }
     children = []
+    parsing_errors = []
     for repo in repos:
         # Find recipe files up to 2 levels deep
         recipes = glob(f"repos/{repo['full_name']}/*/*.recipe")
@@ -111,14 +112,20 @@ def build_search_index(repos):
                 try:
                     with open(recipe, "rb") as openfile:
                         recipe_dict = yaml.safe_load(openfile)
-                except yaml.scanner.ScannerError:
-                    print(f"WARNING: Unable to parse {recipe} as yaml")
+                except yaml.scanner.ScannerError as e:
+                    error_msg = f"Unable to parse {recipe} as YAML: {e}"
+                    print(f"::warning file={recipe}::{error_msg}")
+                    parsing_errors.append(error_msg)
+                    continue
             else:
                 try:
                     with open(recipe, "rb") as openfile:
                         recipe_dict = plistlib.load(openfile)
-                except (plistlib.InvalidFileException, ExpatError, ValueError):
-                    print(f"WARNING: Unable to parse {recipe} as plist")
+                except (plistlib.InvalidFileException, ExpatError, ValueError) as e:
+                    error_msg = f"Unable to parse {recipe} as plist: {e}"
+                    print(f"::warning file={recipe}::{error_msg}")
+                    parsing_errors.append(error_msg)
+                    continue
 
             # Generally applicable metadata
             input_dict = recipe_dict.get("Input", {})
@@ -190,9 +197,17 @@ def build_search_index(repos):
             else:
                 index["identifiers"][child[1]]["children"] = [child[0]]
 
+    # Report parsing errors and potentially fail
+    if parsing_errors:
+        print(f"\n::warning::Found {len(parsing_errors)} recipe parsing errors:")
+        for error in parsing_errors:
+            print(f"  - {error}")
+
     # Write index file
     with open("index.json", "w", encoding="utf-8") as openfile:
         openfile.write(json.dumps(index, indent=2))
+
+    return len(parsing_errors)
 
 
 def main():
@@ -209,7 +224,12 @@ def main():
     clone_all_repos(repos)
 
     # Build and write search index
-    build_search_index(repos)
+    error_count = build_search_index(repos)
+
+    # Exit with error code if there were parsing errors (optional)
+    if error_count > 0:
+        print(f"::notice::Index build completed with {error_count} parsing errors")
+        raise SystemExit(f"Build failed due to {error_count} recipe parsing errors")
 
 
 if __name__ == "__main__":
