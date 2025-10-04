@@ -112,7 +112,7 @@ def build_search_index(repos):
                 try:
                     with open(recipe, "rb") as openfile:
                         recipe_dict = yaml.safe_load(openfile)
-                except yaml.scanner.ScannerError as e:
+                except (yaml.YAMLError,) as e:
                     error_msg = f"Unable to parse {recipe} as YAML: {e}"
                     print(f"::warning file={recipe}::{error_msg}")
                     parsing_errors.append(error_msg)
