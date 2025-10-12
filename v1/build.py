@@ -15,9 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""build_index.py
+"""build.py
 
-Clones all active repos in the AutoPkg organization, then builds an index
+Clones all active repos in the AutoPkg organization, then builds a search index
 based on the recipes' metadata.
 """
 
@@ -141,14 +141,19 @@ def build_search_index(repos):
     }
     children = []
     parsing_errors = []
+    warnings = {
+        "yaml_parse_errors": [],
+        "plist_parse_errors": [],
+        "empty_recipes": [],
+        "unresolved_variables": [],
+        "missing_parents": [],
+    }
     for repo in repos:
         # Find recipe files up to 2 levels deep
-        recipes = glob(f"repos/{repo['full_name']}/*/*.recipe")
-        recipes += glob(f"repos/{repo['full_name']}/*/*/*.recipe")
-        recipes += glob(f"repos/{repo['full_name']}/*/*.recipe.plist")
-        recipes += glob(f"repos/{repo['full_name']}/*/*/*.recipe.plist")
-        recipes += glob(f"repos/{repo['full_name']}/*/*.recipe.yaml")
-        recipes += glob(f"repos/{repo['full_name']}/*/*/*.recipe.yaml")
+        recipes = []
+        for ext in ("recipe", "recipe.plist", "recipe.yaml"):
+            recipes.extend(glob(f"repos/{repo['full_name']}/*/*.{ext}"))
+            recipes.extend(glob(f"repos/{repo['full_name']}/*/*/*.{ext}"))
 
         # Filter out any directories
         recipes = [r for r in recipes if os.path.isfile(r)]
@@ -164,6 +169,7 @@ def build_search_index(repos):
                     error_msg = f"Unable to parse {recipe} as YAML: {e}"
                     print(f"::warning file={recipe}::{error_msg}")
                     parsing_errors.append(error_msg)
+                    warnings["yaml_parse_errors"].append(error_msg)
                     continue
             else:
                 try:
@@ -173,6 +179,7 @@ def build_search_index(repos):
                     error_msg = f"Unable to parse {recipe} as plist: {e}"
                     print(f"::warning file={recipe}::{error_msg}")
                     parsing_errors.append(error_msg)
+                    warnings["plist_parse_errors"].append(error_msg)
                     continue
 
             # Treat empty recipes as errors
@@ -180,6 +187,7 @@ def build_search_index(repos):
                 error_msg = f"Empty or invalid recipe file: {recipe}"
                 print(f"::warning file={recipe}::{error_msg}")
                 parsing_errors.append(error_msg)
+                warnings["empty_recipes"].append(error_msg)
                 continue
 
             # Generally applicable metadata
@@ -216,9 +224,13 @@ def build_search_index(repos):
                 if isinstance(v, str) and v.startswith("%") and v.endswith("%"):
                     resolved_value = resolve_var(recipe_dict, v)
                     if resolved_value is None:
+                        warning_msg = (
+                            f"Unable to resolve variable {v} in field '{k}' in {recipe}"
+                        )
                         print(
                             f"::warning file={recipe}::Unable to resolve variable {v} in field '{k}'"
                         )
+                        warnings["unresolved_variables"].append(warning_msg)
                     index_entry[k] = resolved_value
 
             # Save entry to identifier index
@@ -238,18 +250,34 @@ def build_search_index(repos):
     # Add children list to parent recipes' index entries
     for child in children:
         if child[1] not in index["identifiers"]:
-            print(f"::warning::{child[0]} refers to missing parent recipe {child[1]}.")
+            warning_msg = f"{child[0]} refers to missing parent recipe {child[1]}."
+            print(f"::warning::{warning_msg}")
+            warnings["missing_parents"].append(warning_msg)
         else:
             if "children" in index["identifiers"][child[1]]:
                 index["identifiers"][child[1]]["children"].append(child[0])
             else:
                 index["identifiers"][child[1]]["children"] = [child[0]]
 
-    # Report parsing errors and potentially fail
-    if parsing_errors:
-        print(f"\n::warning::Found {len(parsing_errors)} recipe parsing errors:")
-        for error in parsing_errors:
-            print(f"  - {error}")
+    # Report warnings grouped by type
+    total_warnings = sum(len(v) for v in warnings.values())
+    if total_warnings > 0:
+        print()
+        print("WARNING SUMMARY:")
+        print(f"Total warnings: {total_warnings}")
+
+        warning_labels = {
+            "yaml_parse_errors": "YAML parsing errors",
+            "plist_parse_errors": "Plist parsing errors",
+            "empty_recipes": "Empty recipe files",
+            "unresolved_variables": "Unresolved variables",
+            "missing_parents": "Missing parent recipes",
+        }
+
+        for warning_type, warning_list in warnings.items():
+            if warning_list:
+                print(f"{warning_labels[warning_type]}: {len(warning_list)}")
+        print()
 
     # Write index file
     with open("index.json", "w", encoding="utf-8") as openfile:

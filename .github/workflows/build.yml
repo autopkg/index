@@ -23,7 +23,7 @@ jobs:
         working-directory: main
         env:
           PA_TOKEN: ${{ secrets.PAT_SECRET }}
-        run: python3 build_index.py
+        run: python3 v1/build.py
 
       - name: Commit index
         working-directory: main
@@ -33,5 +33,5 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add index.json || true
-          git commit -m "Rebuild index" index.json || true
+          git commit -m "Rebuild index" v1/index.json || true
           git push --set-upstream origin main || true
