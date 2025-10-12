@@ -167,15 +167,15 @@ def build_search_index(repos):
             # Munki-specific metadata
             if index_entry.get("inferred_type") == "munki":
                 pkginfo = input_dict.get("pkginfo", {})
-                index_entry["munki_display_name"] = pkginfo.get("display_name")
-                index_entry["munki_description"] = pkginfo.get("description")
+                index_entry["app_display_name"] = pkginfo.get("display_name")
+                index_entry["app_description"] = pkginfo.get("description")
 
             # Jamf-specific metadata
-            if index_entry.get("inferred_type") in ("jss", "jamf"):
-                index_entry["jamf_display_name"] = input_dict.get(
+            elif index_entry.get("inferred_type") in ("jss", "jamf"):
+                index_entry["app_display_name"] = input_dict.get(
                     "SELF_SERVICE_DISPLAY_NAME"
                 )
-                index_entry["jamf_description"] = input_dict.get(
+                index_entry["app_description"] = input_dict.get(
                     "SELF_SERVICE_DESCRIPTION"
                 )
 
