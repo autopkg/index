@@ -79,7 +79,11 @@ def clone_all_repos(repos):
 
 
 def resolve_var(recipe_dict, var_name):
-    """Given a variable name wrapped in percents, resolve to the actual variable value."""
+    """Given a variable name wrapped in percents, resolve to the actual variable value.
+
+    NOTE: We are not currently traversing parents to resolve variables, because recipes
+    that require this for search-relevant values like app name and description are rare.
+    """
 
     var_name = var_name.strip("%")
     return recipe_dict.get("Input", {}).get(var_name)
