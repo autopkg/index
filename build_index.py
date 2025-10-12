@@ -214,7 +214,12 @@ def build_search_index(repos):
             # Resolve any substitution variables in the index entry
             for k, v in index_entry.items():
                 if isinstance(v, str) and v.startswith("%") and v.endswith("%"):
-                    index_entry[k] = resolve_var(recipe_dict, v)
+                    resolved_value = resolve_var(recipe_dict, v)
+                    if resolved_value is None:
+                        print(
+                            f"::warning file={recipe}::Unable to resolve variable {v} in field '{k}'"
+                        )
+                    index_entry[k] = resolved_value
 
             # Save entry to identifier index
             index["identifiers"][recipe_dict.get("Identifier")] = index_entry
@@ -233,7 +238,7 @@ def build_search_index(repos):
     # Add children list to parent recipes' index entries
     for child in children:
         if child[1] not in index["identifiers"]:
-            print(f"WARNING: {child[0]} refers to missing parent recipe {child[1]}.")
+            print(f"::warning::{child[0]} refers to missing parent recipe {child[1]}.")
         else:
             if "children" in index["identifiers"][child[1]]:
                 index["identifiers"][child[1]]["children"].append(child[0])
