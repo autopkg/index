@@ -89,6 +89,50 @@ def resolve_var(recipe_dict, var_name):
     return recipe_dict.get("Input", {}).get(var_name)
 
 
+def extract_type_metadata(index_entry, input_dict):
+    """Extract type-specific metadata based on recipe type.
+
+    Args:
+        index_entry: Dictionary containing the recipe's index entry
+        input_dict: The recipe's Input dictionary
+    """
+    # Maps (recipe_type, field_name) -> (source_path, input_key)
+    metadata_map = {
+        "munki": {
+            "app_display_name": ("pkginfo", "display_name"),
+            "app_description": ("pkginfo", "description"),
+        },
+        "jss": {
+            "app_display_name": ("Input", "SELF_SERVICE_DISPLAY_NAME"),
+            "app_description": ("Input", "SELF_SERVICE_DESCRIPTION"),
+        },
+        # Based on examples from grahampugh-recipes
+        "jamf": {
+            "app_display_name": ("Input", "SELF_SERVICE_DISPLAY_NAME"),
+            "app_description": ("Input", "SELF_SERVICE_DESCRIPTION"),
+        },
+        # Based on examples from almenscorner-recipes
+        "intune": {
+            "app_display_name": ("Input", "display_name"),
+            "app_description": ("Input", "description"),
+        },
+        # Based on examples from WorkSpaceOneImporter-recipes
+        "ws1": {
+            "app_display_name": ("pkginfo", "display_name"),
+            "app_description": ("pkginfo", "description"),
+        },
+    }
+
+    recipe_type = index_entry.get("inferred_type")
+    if recipe_type in metadata_map:
+        for field_name, (source, key) in metadata_map[recipe_type].items():
+            if source == "pkginfo":
+                pkginfo = input_dict.get("pkginfo", {})
+                index_entry[field_name] = pkginfo.get(key)
+            else:
+                index_entry[field_name] = input_dict.get(key)
+
+
 def build_search_index(repos):
     """Given a list of repo info from the GitHub API, build recipe search index."""
     index = {
@@ -164,20 +208,8 @@ def build_search_index(repos):
                 index_entry["shortname"] = match.group(1)
                 index_entry["inferred_type"] = match.group(2)
 
-            # Munki-specific metadata
-            if index_entry.get("inferred_type") == "munki":
-                pkginfo = input_dict.get("pkginfo", {})
-                index_entry["app_display_name"] = pkginfo.get("display_name")
-                index_entry["app_description"] = pkginfo.get("description")
-
-            # Jamf-specific metadata
-            elif index_entry.get("inferred_type") in ("jss", "jamf"):
-                index_entry["app_display_name"] = input_dict.get(
-                    "SELF_SERVICE_DISPLAY_NAME"
-                )
-                index_entry["app_description"] = input_dict.get(
-                    "SELF_SERVICE_DESCRIPTION"
-                )
+            # Type-specific metadata extraction such as display name and description
+            extract_type_metadata(index_entry, input_dict)
 
             # Resolve any substitution variables in the index entry
             for k, v in index_entry.items():
