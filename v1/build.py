@@ -241,6 +241,11 @@ def build_search_index(repos):
                         warnings["unresolved_variables"].append(warning_msg)
                     index_entry[k] = resolved_value
 
+            # Strip whitespace from all string values in the index entry
+            for k, v in index_entry.items():
+                if isinstance(v, str):
+                    index_entry[k] = v.strip()
+
             # Save entry to identifier index
             index["identifiers"][recipe_dict.get("Identifier")] = index_entry
 
