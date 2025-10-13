@@ -207,7 +207,8 @@ def build_search_index(repos):
                     for x in recipe_dict.get("Process", [{}])
                 ]
             ):
-                index_entry["deprecated"] = True
+                # Don't index deprecated recipes
+                continue
 
             # Get inferred type of recipe
             type_pattern = r"\/([\w\- ]+\.([\w\- ]+))\.recipe(\.yaml|\.plist)?$"
