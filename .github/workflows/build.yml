@@ -23,7 +23,7 @@ jobs:
         working-directory: main
         env:
           PA_TOKEN: ${{ secrets.PAT_SECRET }}
-        run: python3 v1/build.py
+        run: python3 v1/build.py && cp v1/index.json index.json
 
       - name: Commit index
         working-directory: main
