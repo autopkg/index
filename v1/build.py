@@ -57,7 +57,7 @@ def get_all_repos():
     # Filter out repos that are archived, private, or otherwise skippable
     excl_reasons = ("private", "fork", "archived", "disabled", "is_template")
     repos = [x for x in repos if not any([x.get(r) for r in excl_reasons])]
-    excl_names = ("autopkg/autopkg", "autopkg/index")
+    excl_names = ("autopkg/autopkg", "autopkg/index", "autopkg/setup-autopkg-actions")
     repos = [x for x in repos if x["full_name"] not in excl_names]
 
     return repos
