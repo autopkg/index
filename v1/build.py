@@ -34,12 +34,19 @@ import requests
 import yaml
 
 
+# Version of this script
+__version__ = "0.0.2"
+
+# Project-relative path to latest index file
+INDEX_PATH = "v1/index.json"
+
+
 def get_all_repos():
     """Get API data on all repos in AutoPkg org."""
     repos = []
     url = "https://api.github.com/orgs/autopkg/repos"
     headers = {
-        "user-agent": "autopkg-search-index/0.0.1",
+        "user-agent": f"autopkg-search-index/{__version__}",
         "accept": "application/vnd.github.v3+json",
         "authorization": f"token {os.environ['PA_TOKEN']}",
     }
@@ -281,7 +288,7 @@ def build_search_index(repos):
         print()
 
     # Write index file
-    with open("index.json", "w", encoding="utf-8") as openfile:
+    with open(INDEX_PATH, "w", encoding="utf-8") as openfile:
         openfile.write(json.dumps(index, indent=2))
 
     return len(parsing_errors)
