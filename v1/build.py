@@ -21,7 +21,6 @@ Clones all active repos in the AutoPkg organization, then builds a search index
 based on the recipes' metadata.
 """
 
-
 import json
 import os
 import plistlib
@@ -197,6 +196,13 @@ def build_search_index(repos):
                 warnings["empty_recipes"].append(error_msg)
                 continue
 
+            # Don't index deprecated recipes
+            if any(
+                x.get("Processor") == "DeprecationWarning"
+                for x in recipe_dict.get("Process", [])
+            ):
+                continue
+
             # Generally applicable metadata
             input_dict = recipe_dict.get("Input") or {}
             index_entry["name"] = input_dict.get("NAME")
@@ -208,14 +214,6 @@ def build_search_index(repos):
                 children.append(
                     (recipe_dict["Identifier"], recipe_dict["ParentRecipe"])
                 )
-            if any(
-                [
-                    x.get("Processor") == "DeprecationWarning"
-                    for x in recipe_dict.get("Process", [{}])
-                ]
-            ):
-                # Don't index deprecated recipes
-                continue
 
             # Get inferred type of recipe
             type_pattern = r"\/([\w\- ]+\.([\w\- ]+))\.recipe(\.yaml|\.plist)?$"
