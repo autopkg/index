@@ -34,7 +34,7 @@ import yaml
 
 
 # Version of this script
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 # Project-relative path to latest index file
 INDEX_PATH = "v1/index.json"
@@ -313,10 +313,14 @@ def main():
     # Build and write search index
     error_count = build_search_index(repos)
 
-    # Exit with error code if there were parsing errors (optional)
+    # Report parsing errors but continue with index creation
     if error_count > 0:
-        print(f"::notice::Index build completed with {error_count} parsing errors")
-        raise SystemExit(f"Build failed due to {error_count} recipe parsing errors")
+        print(
+            f"::warning::Index build completed. Skipped {error_count} "
+            "recipes with parsing errors"
+        )
+    else:
+        print("::notice::Index build completed successfully with no parsing errors")
 
 
 if __name__ == "__main__":

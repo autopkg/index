@@ -12,18 +12,26 @@ jobs:
   build:
     if: github.repository_owner == 'autopkg'
     runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     steps:
       - name: Clone this repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: main
+          token: ${{ secrets.PAT_SECRET }}
+
+      - name: Install Python dependencies
+        working-directory: main
+        run: pip3 install -r v1/requirements.txt
 
       - name: Clone AutoPkg org repos and rebuild search index
         working-directory: main
         env:
           PA_TOKEN: ${{ secrets.PAT_SECRET }}
-        run: python3 v1/build.py && cp v1/index.json index.json
+        run: |
+          mkdir -p repos
+          python3 v1/build.py && cp v1/index.json index.json
 
       - name: Commit index
         working-directory: main
