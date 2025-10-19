@@ -21,6 +21,10 @@ jobs:
           path: main
           token: ${{ secrets.PAT_SECRET }}
 
+      - name: Install Python dependencies
+        working-directory: main
+        run: pip3 install -r v1/requirements.txt
+
       - name: Clone AutoPkg org repos and rebuild search index
         working-directory: main
         env:
