@@ -12,6 +12,7 @@ jobs:
   build:
     if: github.repository_owner == 'autopkg'
     runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     steps:
       - name: Clone this repository
