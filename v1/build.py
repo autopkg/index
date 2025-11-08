@@ -270,10 +270,16 @@ def build_search_index(repos):
             else:
                 index["identifiers"][child[1]]["children"] = [child[0]]
 
+    # Report build summary
+    total_recipes = len(index["identifiers"])
+    print()
+    print("BUILD SUMMARY:")
+    print(f"Total recipes added to index: {total_recipes}")
+    print()
+
     # Report warnings grouped by type
     total_warnings = sum(len(v) for v in warnings.values())
     if total_warnings > 0:
-        print()
         print("WARNING SUMMARY:")
         print(f"Total warnings: {total_warnings}")
 
