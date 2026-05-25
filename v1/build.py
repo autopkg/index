@@ -1,7 +1,7 @@
 #!/bin/env python3
 # encoding: utf-8
 
-# Copyright 2022-2025 Elliot Jordan
+# Copyright 2022-2026 Elliot Jordan
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
