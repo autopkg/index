@@ -298,7 +298,7 @@ def build_search_index(repos):
 
     # Write index file
     with open(INDEX_PATH, "w", encoding="utf-8") as openfile:
-        openfile.write(json.dumps(index, indent=2))
+        openfile.write(json.dumps(index, separators=(",", ":"), sort_keys=True))
 
     return len(parsing_errors)
 
