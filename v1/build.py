@@ -34,7 +34,7 @@ import yaml
 
 
 # Version of this script
-__version__ = "0.0.3"
+__version__ = "1.0.0"
 
 # Project-relative path to latest index file
 INDEX_PATH = "v1/index.json"
@@ -95,41 +95,22 @@ def resolve_var(recipe_dict, var_name):
     return recipe_dict.get("Input", {}).get(var_name)
 
 
-def extract_type_metadata(index_entry, input_dict):
+def extract_type_metadata(index_entry, input_dict, recipe_type):
     """Extract type-specific metadata based on recipe type.
 
     Args:
         index_entry: Dictionary containing the recipe's index entry
         input_dict: The recipe's Input dictionary
+        recipe_type: The inferred recipe type (e.g. "munki", "pkg")
     """
-    # Maps (recipe_type, field_name) -> (source_path, input_key)
     metadata_map = {
-        "munki": {
-            "app_display_name": ("pkginfo", "display_name"),
-            "app_description": ("pkginfo", "description"),
-        },
-        "jss": {
-            "app_display_name": ("Input", "SELF_SERVICE_DISPLAY_NAME"),
-            "app_description": ("Input", "SELF_SERVICE_DESCRIPTION"),
-        },
-        # Based on examples from grahampugh-recipes
-        "jamf": {
-            "app_display_name": ("Input", "SELF_SERVICE_DISPLAY_NAME"),
-            "app_description": ("Input", "SELF_SERVICE_DESCRIPTION"),
-        },
-        # Based on examples from almenscorner-recipes
-        "intune": {
-            "app_display_name": ("Input", "display_name"),
-            "app_description": ("Input", "description"),
-        },
-        # Based on examples from WorkSpaceOneImporter-recipes
-        "ws1": {
-            "app_display_name": ("pkginfo", "display_name"),
-            "app_description": ("pkginfo", "description"),
-        },
+        "munki": {"app_display_name": ("pkginfo", "display_name")},
+        "jss": {"app_display_name": ("Input", "SELF_SERVICE_DISPLAY_NAME")},
+        "jamf": {"app_display_name": ("Input", "SELF_SERVICE_DISPLAY_NAME")},
+        "intune": {"app_display_name": ("Input", "display_name")},
+        "ws1": {"app_display_name": ("pkginfo", "display_name")},
     }
 
-    recipe_type = index_entry.get("inferred_type")
     if recipe_type in metadata_map:
         for field_name, (source, key) in metadata_map[recipe_type].items():
             if source == "pkginfo":
@@ -145,7 +126,7 @@ def build_search_index(repos):
         "identifiers": {},
         "shortnames": {},
     }
-    children = []
+    parent_refs = []
     parsing_errors = []
     warnings = {
         "yaml_parse_errors": [],
@@ -206,24 +187,20 @@ def build_search_index(repos):
             # Generally applicable metadata
             input_dict = recipe_dict.get("Input") or {}
             index_entry["name"] = input_dict.get("NAME")
-            index_entry["description"] = recipe_dict.get("Description")
             index_entry["repo"] = repo["full_name"]
             index_entry["path"] = os.path.relpath(recipe, f"repos/{repo['full_name']}")
-            if recipe_dict.get("ParentRecipe"):
-                index_entry["parent"] = recipe_dict["ParentRecipe"]
-                children.append(
-                    (recipe_dict["Identifier"], recipe_dict["ParentRecipe"])
-                )
 
-            # Get inferred type of recipe
+            # Get inferred type of recipe (needed for type-specific metadata)
             type_pattern = r"\/([\w\- ]+\.([\w\- ]+))\.recipe(\.yaml|\.plist)?$"
             match = re.search(type_pattern, index_entry["path"])
+            shortname = None
+            inferred_type = None
             if match:
-                index_entry["shortname"] = match.group(1)
-                index_entry["inferred_type"] = match.group(2)
+                shortname = match.group(1)
+                inferred_type = match.group(2)
 
-            # Type-specific metadata extraction such as display name and description
-            extract_type_metadata(index_entry, input_dict)
+            # Type-specific metadata extraction (e.g. display name)
+            extract_type_metadata(index_entry, input_dict, inferred_type)
 
             # Resolve any substitution variables in the index entry
             for k, v in index_entry.items():
@@ -244,31 +221,28 @@ def build_search_index(repos):
                 if isinstance(v, str):
                     index_entry[k] = v.strip()
 
+            # Track parent recipe references for validation
+            if recipe_dict.get("ParentRecipe"):
+                parent_refs.append(
+                    (recipe_dict["Identifier"], recipe_dict["ParentRecipe"])
+                )
+
             # Save entry to identifier index
             index["identifiers"][recipe_dict.get("Identifier")] = index_entry
 
             # Save entry to shortnames index
-            if index_entry.get("shortname"):
-                if index_entry["shortname"] in index["shortnames"]:
-                    index["shortnames"][index_entry["shortname"]].append(
-                        recipe_dict.get("Identifier")
-                    )
+            if shortname:
+                if shortname in index["shortnames"]:
+                    index["shortnames"][shortname].append(recipe_dict.get("Identifier"))
                 else:
-                    index["shortnames"][index_entry["shortname"]] = [
-                        recipe_dict.get("Identifier")
-                    ]
+                    index["shortnames"][shortname] = [recipe_dict.get("Identifier")]
 
-    # Add children list to parent recipes' index entries
-    for child in children:
-        if child[1] not in index["identifiers"]:
-            warning_msg = f"{child[0]} refers to missing parent recipe {child[1]}."
+    # Warn about recipes that reference non-existent parent recipes
+    for child_id, parent_id in parent_refs:
+        if parent_id not in index["identifiers"]:
+            warning_msg = f"{child_id} refers to missing parent recipe {parent_id}."
             print(f"::warning::{warning_msg}")
             warnings["missing_parents"].append(warning_msg)
-        else:
-            if "children" in index["identifiers"][child[1]]:
-                index["identifiers"][child[1]]["children"].append(child[0])
-            else:
-                index["identifiers"][child[1]]["children"] = [child[0]]
 
     # Report build summary
     total_recipes = len(index["identifiers"])
