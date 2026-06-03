@@ -228,12 +228,6 @@ def build_search_index(repos):
                     (recipe_dict["Identifier"], recipe_dict["ParentRecipe"])
                 )
 
-            # Store shortname and inferred_type in entry
-            if shortname:
-                index_entry["shortname"] = shortname
-            if inferred_type:
-                index_entry["inferred_type"] = inferred_type
-
             # Save entry to identifier index
             index["identifiers"][recipe_dict.get("Identifier")] = index_entry
 
