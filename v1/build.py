@@ -221,8 +221,9 @@ def build_search_index(repos):
                 if isinstance(v, str):
                     index_entry[k] = v.strip()
 
-            # Track parent recipe references for validation
+            # Track parent recipe references for validation, and store in entry
             if recipe_dict.get("ParentRecipe"):
+                index_entry["parent"] = recipe_dict["ParentRecipe"]
                 parent_refs.append(
                     (recipe_dict["Identifier"], recipe_dict["ParentRecipe"])
                 )
