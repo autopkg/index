@@ -1,5 +1,4 @@
 #!/bin/env python3
-# encoding: utf-8
 
 # Copyright 2022-2026 Elliot Jordan
 #
@@ -31,7 +30,6 @@ from xml.parsers.expat import ExpatError
 
 import requests
 import yaml
-
 
 # Version of this script
 __version__ = "1.0.0"
@@ -152,7 +150,7 @@ def build_search_index(repos):
                 try:
                     with open(recipe, "rb") as openfile:
                         recipe_dict = yaml.safe_load(openfile)
-                except (yaml.YAMLError,) as e:
+                except yaml.YAMLError as e:
                     error_msg = f"Unable to parse {recipe} as YAML: {e}"
                     print(f"::warning file={recipe}::{error_msg}")
                     parsing_errors.append(error_msg)
